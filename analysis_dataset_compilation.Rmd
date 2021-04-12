@@ -22,141 +22,41 @@ library(readxl)
 #load datasets
 ```{r}
 #hyrdo and PPT and impervious
-hydro<- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Hydro_data\\hydro_metrics_study_614basins_mar4.csv") %>%
-  select(!27)
+hydro<- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Hydro_data\\hydro_metrics_study_614basins_mar5.csv") %>%
+  select(!1,2,26)
 
-#PET
-PET<-read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Hydro_data\\PETannual.csv")%>%
-  select(2:4) %>%
-  rename(PET=pet_sum)
-
-#impervious already with hydro
-#impervious_hydro<- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness 
-#tracking\\Data\\study_basins\\Basins614_annual_impervious.csv")%>%
-  #mutate(impervious=impervious*100) %>%
-  #select(BasinID, year, impervious)
-
-#basin info
-basins614 <- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\study_basins\\basins614_summary_mar4.csv") %>%
-  select(4,7,11:14,17:19)
-
-lc <- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\study_basins\\Basin614_Landcover_summaries.csv") %>%
-  select(!1)
-
+green<- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Analysis_ready_data\\Greenness_master_dataset_apr9.csv")
 
 
 ```
 
 #join datasets
 ```{r}
-master_dataset <- hydro %>% 
-  left_join(PET, by=c("BasinID", "wat_yr"="wat_yr")) %>%
+master_dataset <- green %>% 
+  left_join(hydro, by=c("Site_No_ID"="BasinID", "wat_yr")) %>%
   left_join(basins614, by=c("BasinID"="Site_No_ID")) %>%
   left_join(lc, by='BasinID') %>%
   filter(wat_yr>1984 & wat_yr<2020)
-
-write.csv(master_dataset, "G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Analysis_ready_data\\master_dataset_mar4.csv")
 ```
 
+
+```{r eval=FALSE, include=FALSE}
+write.csv(master_dataset, "G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Analysis_ready_data\\master_dataset_mar5.csv")
+```
+
+
+#check areas
 ```{r}
-hydro_metrics_study<- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Hydro_data\\hydro_metrics_study_614basins_mar4.csv") 
 
-
-paste0('z_',names(hydro_metrics_study))
-
-#test z calc
-z_Q_cfy <- hydro_metrics_study %>% select(BasinID, wat_yr, Q_cfy) %>% group_by(BasinID) %>%
-  mutate(mean = mean(mean(Q_cfy)),
-         zscore = (Q_cfy - mean(Q_cfy))/sd(Q_cfy))
-
-#z calc all
-hydro_metrics_z <- hydro_metrics_study %>% group_by(BasinID) %>%
-  mutate(z_Q_cfy = (Q_cfy - mean(Q_cfy, na.rm = T))/sd(Q_cfy, na.rm = T),
-         z_Qb = (Qb - mean(Qb, na.rm = T))/sd(Qb, na.rm = T),
-         z_Qhi_l = (Qhi_l - mean(Qhi_l, na.rm = T))/sd(Qhi_l, na.rm = T),
-         z_Qhi_g = (Qhi_g - mean(Qhi_g, na.rm = T))/sd(Qhi_g, na.rm = T),
-         z_QhiDays_l = (QhiDays_l - mean(QhiDays_l, na.rm = T))/sd(QhiDays_l, na.rm = T),
-         z_QhiDays_g = (QhiDays_g - mean(QhiDays_g, na.rm = T))/sd(QhiDays_g, na.rm = T),
-         z_Qcv = (Qcv - mean(Qcv, na.rm = T))/sd(Qcv, na.rm = T),
-         z_QpeakDur = (QpeakDur - mean(QpeakDur, na.rm = T))/sd(QpeakDur, na.rm = T),
-         z_Qpeak = (Qpeak - mean(Qpeak, na.rm = T))/sd(Qpeak, na.rm = T),
-         z_QpeakFreq = (QpeakFreq - mean(QpeakFreq, na.rm = T))/sd(QpeakFreq, na.rm = T),
-         z_QvolRatio_m = (QvolRatio_m - mean(QvolRatio_m, na.rm = T))/sd(QvolRatio_m, na.rm = T),
-         z_QvolRatio_b = (QvolRatio_b - mean(QvolRatio_b, na.rm = T))/sd(QvolRatio_b, na.rm = T),
-         z_PPT = (PPT - mean(PPT, na.rm = T))/sd(PPT, na.rm = T),
-         z_Qratio = (Qratio - mean(Qratio, na.rm = T))/sd(Qratio, na.rm = T)) %>%
-  select(BasinID, wat_yr, PPT, impervious, Area_km2, starts_with('z'))
-
-
-
-
-```
-
-#hydro metric boxplots
-```{r, fig.height=10, fig.width=8}
-
-hydro_metrics_z %>% pivot_longer(cols=c(6:19), names_to= 'metric', values_to='value') %>%
-  mutate(`water year`=as.character(wat_yr)) %>%
-  filter(wat_yr>1984&wat_yr<2020) %>%
-    ggplot(aes(x=`water year`,y=value))+
-    facet_wrap(~metric, ncol = 3, scales="free_x")+
-    geom_boxplot(fill='lightblue', outlier.alpha = 0)+
-    theme_bw() +
-    theme(panel.grid.minor.x = element_blank(), panel.grid.major.x  = element_blank())+
-    theme(axis.text.x = element_text(angle = 90, hjust=-1, vjust = .5, size=6))+
-    ylab('z-score')
+master_dataset %>% ggplot(aes(wat_yr, Area_km2,col=BasinID)) + 
+  geom_line()+
+  theme(legend.position = "none")+
+  ylim(0,10000)
 
 ```
 
 
 
-```{r, fig.height=10, fig.width=8}
 
-hydro_metrics_z %>% pivot_longer(cols=!c(BasinID,wat_yr,z_PPT,PPT,impervious,Area_km2), names_to= 'metric', values_to='value') %>%
-  filter(wat_yr>1984&wat_yr<2020 & Area_km2<1000) %>%
-    ggplot(aes(x=z_PPT,y=value))+
-    facet_wrap(~metric, ncol = 3, scales="free_x")+
-    geom_point(alpha=.1)+
-    geom_smooth(method=lm, se=F)+
-    theme_bw() +
-    theme(panel.grid.minor = element_blank(), panel.grid.major  = element_blank())+
-    #theme(axis.text.x = element_text(angle = 90, hjust=-1, vjust = .5, size=6))+
-    ylab('z-score') +
-    xlab('Total annual Precip z-score')
-
-hydro_metrics_z %>% pivot_longer(cols=!c(BasinID,wat_yr,z_PPT,PPT,impervious,Area_km2), names_to= 'metric', values_to='value') %>%
-  filter(wat_yr>1984&wat_yr<2020 & Area_km2<1000) %>%
-    ggplot(aes(x=PPT,y=value))+
-    facet_wrap(~metric, ncol = 3, scales="free_x")+
-    geom_point(alpha=.1)+
-    geom_smooth(method=lm, se=F)+
-    theme_bw() +
-    theme(panel.grid.minor = element_blank(), panel.grid.major  = element_blank())+
-    #theme(axis.text.x = element_text(angle = 90, hjust=-1, vjust = .5, size=6))+
-    ylab('z-score')
-
-hydro_metrics_z %>% pivot_longer(cols=!c(BasinID,wat_yr,z_PPT,PPT,impervious,Area_km2), names_to= 'metric', values_to='value') %>%
-  filter(wat_yr>1984&wat_yr<2020 & Area_km2<1000, z_PPT>2) %>%
-    ggplot(aes(x=impervious,y=value))+
-    facet_wrap(~metric, ncol = 3, scales="free_x")+
-    geom_point(alpha=.1)+
-    geom_smooth(method=lm, se=F)+
-    theme_bw() +
-    theme(panel.grid.minor = element_blank(), panel.grid.major  = element_blank())+
-    #theme(axis.text.x = element_text(angle = 90, hjust=-1, vjust = .5, size=6))+
-    ylab('z-score')
-
-
-hydro_metrics_z %>% pivot_longer(cols=!c(BasinID,wat_yr,z_PPT,PPT,impervious,Area_km2), names_to= 'metric', values_to='value') %>%
-  filter(wat_yr>1984&wat_yr<2020 & Area_km2<1000, z_PPT>2) %>%
-    ggplot(aes(x=Area_km2,y=value))+
-    facet_wrap(~metric, ncol = 3, scales="free_x")+
-    geom_point(alpha=.1)+
-    geom_smooth(method=lm, se=F)+
-    theme_bw() +
-    theme(panel.grid.minor = element_blank(), panel.grid.major  = element_blank())+
-    #theme(axis.text.x = element_text(angle = 90, size=8))+
-    ylab('hydro metric z-score')
-```
 
 
