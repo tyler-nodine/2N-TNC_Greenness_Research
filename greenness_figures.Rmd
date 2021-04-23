@@ -1,0 +1,101 @@
+---
+title: "Greenness paper Figures"
+author: "TN"
+date: "4/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(sf)
+library(leaflet)
+library(ggplot2)
+library(readxl)
+library(tmap)
+library(rgdal)
+library(rgeos)
+library(raster)
+```
+```{r}
+
+epa <- read_sf("spatial_data_figures/EPA_regions.shp")
+states <- USAboundaries::us_states() %>% filter(jurisdiction_type=="state")
+
+climate <- raster("spatial_data_figures/climate_zones.tif")
+
+
+# Get CRS of shapefile
+crs <- st_crs(epa)
+
+#get crs of raster
+crs2 <- crs(climate)
+map_extent <-extent(c(-127,-65,23,52))
+
+climate2<-crop(climate, map_extent)
+extent(climate)
+
+
+# Project CRS of mpa to state boundaries
+epa <- epa %>%
+  st_transform(crs2)
+epa2<-st_crop(epa, map_extent)
+
+epa2<-st_multipolygon(epa2)
+
+
+
+plot(climate)
+```
+
+```{r}
+#reclassify raster to make unsuitable area NA
+
+dataType(climate)
+
+m <- c(0, 2000, 1,  2000, 5000, 2,  5000, 8500, 3, 8500, 100000, 4)
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+rc <- reclassify(climate, rclmat)
+
+rc
+climate
+```
+
+```{r}
+Master_greenness<-read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Analysis_ready_data\\Greenness_master_dataset_apr16.csv")
+
+points <- st_as_sf(x = Master_greenness,                         
+           coords = c("Long", "Lat"))
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
+# Plot climate zones with epa boundaries
+
+#create a map object with epa polygons
+epa_map <-  tm_shape(epa, projection = crs2, bbox=map_extent) + tm_borders(col="black",alpha=0.3)
+
+climate_map <-  tm_shape(rc, projection = crs2, bbox=map_extent) + 
+  tm_raster(style = "cat",
+            palette = c("#CC6600","#FFFF33","#66CC33","#006600"), 
+            alpha=0.6,
+            title = "Climate region",
+            labels=c("Arid","Semi-arid", "Sub-humid", "Humid"))+
+  tm_shape(epa) + tm_borders(col="black", alpha=0.6) +tm_text("EPAREGION", size = 0.7, remove.overlap=TRUE)+
+  tm_shape(points) + tm_symbols(col="blue", size=0.2, alpha=0.1, border.alpha = .3) 
+
+
+#plot map with layout specifications
+climate_map + tm_layout(main.title="Figure 1. Study watersheds and regions",
+                    main.title.size = .8,
+                    legend.show=TRUE,
+                    legend.position = c("right", "bottom"),
+                    main.title.position = "center") +
+  tm_compass(type = "arrow", position = c("left", "bottom")) +
+  tm_scale_bar(breaks = c(0, 200, 400, 800), text.size = .7, position = c("left", "bottom"))
+```

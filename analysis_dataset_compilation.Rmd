@@ -1,9 +1,11 @@
 ---
-title: "Analysis_dataset_compilation"
+title: "Analysis dataset compilation"
 author: "TN"
 date: "3/4/2021"
 output: html_document
 ---
+
+This script loads and compiles hydrologic and greenness datasets for analysis
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -25,7 +27,7 @@ library(readxl)
 hydro<- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Hydro_data\\hydro_metrics_study_614basins_mar5.csv") %>%
   select(!1,2,26)
 
-green<- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Analysis_ready_data\\Greenness_master_dataset_apr9.csv")
+green<- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Analysis_ready_data\\Greenness_master_dataset_apr16.csv")
 
 
 ```
@@ -33,22 +35,21 @@ green<- read.csv("G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC 
 #join datasets
 ```{r}
 master_dataset <- green %>% 
-  left_join(hydro, by=c("Site_No_ID"="BasinID", "wat_yr")) %>%
-  left_join(basins614, by=c("BasinID"="Site_No_ID")) %>%
-  left_join(lc, by='BasinID') %>%
-  filter(wat_yr>1984 & wat_yr<2020)
+  left_join(hydro, by=c("Site_No_ID"="BasinID", "wat_yr"))
+
 ```
 
 
 ```{r eval=FALSE, include=FALSE}
-write.csv(master_dataset, "G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Analysis_ready_data\\master_dataset_mar5.csv")
+write.csv(master_dataset, "G:\\Shared drives\\2NDNATURE\\Science\\Research Projects\\TNC Urban Greeness Tracking\\Data\\Analysis_ready_data\\master_dataset_x.csv")
 ```
 
 
 #check areas
+Confirm that basin areas are constant over time
 ```{r}
 
-master_dataset %>% ggplot(aes(wat_yr, Area_km2,col=BasinID)) + 
+master_dataset %>% ggplot(aes(wat_yr, Area_km2.x,col=Site_No_ID)) + 
   geom_line()+
   theme(legend.position = "none")+
   ylim(0,10000)
